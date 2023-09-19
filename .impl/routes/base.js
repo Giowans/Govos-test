@@ -63,7 +63,7 @@ const Link = ({ active = true, onClick, children }) =>
     >${children}<//
   >`;
 
-const getCurrentStep = (loc) => {
+export const getCurrentStep = (loc) => {
   const matched = loc.match(/steps\/(\d+)$/);
 
   return matched === null ? null : Number(matched[1]);
