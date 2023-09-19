@@ -344,7 +344,7 @@ const MovieList = ({
   const handleFilterMovies = () =>{
     let moviesFiltered = [...movies];
     if(searchFilter) {
-      moviesFiltered = movies.filter(movie => movie.toLowerCase().includes(val.toLowerCase()));
+      moviesFiltered = movies.filter(movie => movie.title.toLowerCase().includes(val.toLowerCase()));
     }
     if(decadeFilter > 0) {
       moviesFiltered = movies.filter(movie => Number(movie.year) >= decadeFilter && Number(movie.year) < decadeFilter + 10 );
@@ -470,6 +470,17 @@ export const App = ({ onLoad }) => {
             showMovieRating=${true} 
             useCachedMoviesOnly=${true}
             withSearch=${true}
+          />
+        `
+        case 7:
+        return html`
+          <${MovieList} 
+            isItemALink=${true} 
+            showMovieYear=${true} 
+            showMovieRating=${true} 
+            useCachedMoviesOnly=${true}
+            withSearch=${true}
+            allowFilterByDecade=${true}
           />
         `       
     }
