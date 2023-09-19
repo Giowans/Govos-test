@@ -10,5 +10,5 @@ beforeEach(function () {
 });
 
 it("shows the default starting message", function () {
-  getByText(this.app, "(this file can be found at ./your-code-here/app.js)");
+  getByText(this.app, "Hi, I'm Giovanni :)");
 });

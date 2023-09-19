@@ -4,11 +4,19 @@ import useLocation from "../use-location.js";
 import "./tests.js";
 
 const { css, cx } = emotion;
-const { useEffect, useState } = React;
+const { useEffect, useState, useRef } = React;
 
 const style = css`
   text-align: center;
+  width: 80%;
 `;
+
+const welcomeImage = css`
+  margin-top: 15px;
+  width: 100px;
+  height: 160px;
+  object-fit: cover;
+`
 
 const titleStyle = css`
   color: #2f3542;
@@ -40,24 +48,21 @@ const movieListContainer = css`
 const movieListFormRow = css`
   display: flex;
   align-items: center;
-  padding-top: 5px;
-  padding-bottom: 5px;
+  padding: 12px 8px;
   width: 100%;
   gap: 8px;
 `;
 
 const movieList = css`
   list-style: "🎬";
-  max-height: 70vh;
+  max-height: 60vh;
   overflow-y: scroll;
   & li {
-    height: fit-content
-    min-width: 800px
-    display: flex;
-    flex-direction: column;
+    height: fit-content;
+    min-width: 300px;
     margin-right: 8px;
     padding: 8px 16px;
-    transition: all 0.4s ease-in-out;
+    transition: all 2s ease-in-out;
   }
 `
 const movieItemHeader = css`
@@ -73,30 +78,48 @@ const movieItemHeader = css`
 `;
 
 const movieListBody = css`
-  display: inline-flex;
-  padding: 12px 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   gap: 24px;
   height: 0px;
+  overflow: hidden;
+  & p {
+    width: 70%;
+    text-align: left;
+    font-size: 0.75rem;
+    font-style: normal;
+  }
 `
 
 const movieListBodyCollapsed = css`
-  display: inline-flex;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   padding: 12px 24px;
   gap: 24px;
   height: fit-content;
+  overflow: hidden;
+  & p {
+    width: 70%;
+    text-align: left;
+    font-size: 0.75rem;
+    font-style: normal;
+  }
 `
 
 const imageWrapper = css`
   width: 100px;
-  height: 170px;
+  height: 160px;
   position: relative;
    & img {
     position: absolute;
+    border-radius: 12px;
     left: 0;
     top: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;  
+    width: 100px;
+    height: 160px;
+    object-fit: cover;
    }
 `
 
@@ -116,6 +139,7 @@ const bgLowRating = css`
   align-items: center;
   padding: 12px;
   border-radius: 8px;
+  user-select: none;
   color: #fff;
   & span {
     text-shadow: none;
@@ -131,6 +155,7 @@ const bgMidRating = css`
   align-items: center;
   padding: 12px;
   border-radius: 8px;
+  user-select: none;
   color: #fff;
   & span {
     text-shadow: none;
@@ -144,7 +169,8 @@ const bgHighRating = css`
   justify-content: center;
   align-items: center;
   padding: 10px;
-  border-radius: 30%;
+  border-radius: 8px;
+  user-select: none;
   color: #fff;
   & span {
     text-shadow: none;
@@ -167,14 +193,13 @@ const formItem = css`
 const customInput = css`
   appearance: none;
   -webkit-appearance: none;
-  width: 100%;
-  font-size: 1.15rem;
-  padding: 0.675em 6em 0.675em 1em;
+  width: 130px;
+  font-size: .8rem;
+  padding: 0.675em 4em 0.675em 1em;
   background-color: #fff;
   border: 1px solid #caced1;
   border-radius: 0.35rem;
   color: #000;
-  cursor: pointer;
   transition: all 0.3s ease-in-out;
 
   &:hover, "&:focus-within" {
@@ -183,14 +208,14 @@ const customInput = css`
 `;
 
 const inputSelect = css`
-  min-width: 350px;
+  min-width: 130px;
   position: relative;
 
   & select {
     appearance: none;
     -webkit-appearance: none;
     width: 100%;
-    font-size: 1.15rem;
+    font-size: .8rem;
     padding: 0.675em 6em 0.675em 1em;
     background-color: #fff;
     border: 1px solid #caced1;
@@ -239,7 +264,8 @@ const MovieListItem = ({
   isItemALink = false, 
   isCollapsible = false, 
   showMovieRating = false, 
-  showMovieYear = false
+  showMovieYear = false,
+  showBodyImage = false,
 }) => {
 
   //State
@@ -266,7 +292,7 @@ const MovieListItem = ({
       </div>
     `}
     ${isItemALink &&
-      html`<a href=${movieData.url}>${movieData.title}</a>`}
+      html`<a href=${movieData.url} onClick=${(e) => e.stopPropagation()}>${movieData.title}</a>`}
     ${!isItemALink &&
       html`<span>${movieData.title}</span>`
     }
@@ -274,14 +300,14 @@ const MovieListItem = ({
       <span>(${movieData.year})</span>
     `}
     </div>
-    ${isCollapsed && html`
-      <div className=${movieListBody}>
+    <div className=${cx({[movieListBody]: !isCollapsed, [movieListBodyCollapsed]: isCollapsed})}>
+      ${showBodyImage && html`
         <div className=${imageWrapper}>
           <img src=${movieData.coverUrl} alt=${`${movieData.id}-movie-${movieData.title}`} />
         </div>
-        <p>${movieData.review}</p>
-      </div>
-    `}
+      `}
+      <p>${movieData.review}</p>
+    </div>
     </li>
   ` 
 }
@@ -294,6 +320,7 @@ const MovieList = ({
   withSearch = false,
   isItemALink = false, 
   allowFilterByDecade = false,
+  showBodyImage = false
 }) => {
   
   //States
@@ -301,11 +328,17 @@ const MovieList = ({
   const [searchFilter, setSearchFilter] = useState('');
   const [decadeFilter, setDecadeFilter] = useState(0);
 
+  //Refs
+  const reviewsRef = useRef([])
+  const rootMoviesRef = useRef([]);
+
+
   //Hooks
 
   //Effects
   useEffect(() => {
     fetchMovies();
+    fecthReviews();
   }, [])
 
   useEffect(() => {
@@ -313,6 +346,27 @@ const MovieList = ({
   }, [searchFilter, decadeFilter])
 
   //Methods
+  const fecthReviews = () => {
+    const cachedReviews = localStorage.getItem('test-reviews-cached');
+    if(cachedReviews !== null) {
+      reviewsRef.current = JSON.parse(cachedReviews);
+    } else {
+      fetch('/api/reviews.json')
+      .then(response => {
+        return response.json(); 
+      })
+      .then(myJson => {
+        const jsonString = JSON.stringify(myJson);
+        if(jsonString) {
+          let reviewsToSet = JSON.parse(jsonString)
+          reviewsRef.current = reviewsToSet;
+          localStorage.setItem('test-reviews-cached', JSON.stringify(reviewsToSet));
+        } else {
+          setMovies([]);
+        }
+      })
+    }
+  }
   const fetchMovies = () => {
     const cachedMovies = localStorage.getItem('test-movies-cached');
     if(cachedMovies !== null && useCachedMoviesOnly) {
@@ -332,8 +386,9 @@ const MovieList = ({
               coverUrl: item['cover-url']
             }
           });
-          setMovies(moviesToSet.sort((a, b) => a.title.localeCompare(b.title)));
-          localStorage.setItem('test-movies', JSON.stringify(moviesToSet));
+          rootMoviesRef.current = [...moviesToSet.sort((a, b) => a.title.localeCompare(b.title))];
+          setMovies(rootMoviesRef.current);
+          localStorage.setItem('test-movies-cached', JSON.stringify(moviesToSet));
         } else {
           setMovies([]);
         }
@@ -342,14 +397,14 @@ const MovieList = ({
   }
 
   const handleFilterMovies = () =>{
-    let moviesFiltered = [...movies];
-    if(searchFilter) {
-      moviesFiltered = movies.filter(movie => movie.title.toLowerCase().includes(val.toLowerCase()));
+    let moviesFiltered = [...rootMoviesRef.current];
+    if(searchFilter && searchFilter.length >= 2) {
+      moviesFiltered = moviesFiltered.filter(movie => movie.title.toLowerCase().includes(searchFilter.toLowerCase()));
     }
     if(decadeFilter > 0) {
-      moviesFiltered = movies.filter(movie => Number(movie.year) >= decadeFilter && Number(movie.year) < decadeFilter + 10 );
+      moviesFiltered = moviesFiltered.filter(movie => Number(movie.year) >= decadeFilter && Number(movie.year) < decadeFilter + 10 );
     }
-    setMovies(moviesFiltered);
+    setMovies([...moviesFiltered]);
   }
   const handleSearch = (event) => {
     const val = event.target.value;
@@ -359,7 +414,7 @@ const MovieList = ({
 
   const handleFilterByDecade = (event) => {
     const val = event.target.value;
-    console.log('decade: ', Number(val));
+    console.log('decade: ', Number(val), 'event: ', event);
     setDecadeFilter(Number(val));
   }
 
@@ -390,13 +445,13 @@ const MovieList = ({
                 placeholder="Type to search by title..."
                 onChange=${handleFilterByDecade}
               >
-                <option value="">Select an option...</option>
-                <option value ="1960">1960</option>
-                <option value ="1970">1970</option>
-                <option value ="1980">1980</option>
-                <option value ="1990">1990</option>
-                <option value ="2000">2000</option>
-                <option value ="1960">2010</option>
+                <option value=${""}>Select an option...</option>
+                <option value=${1960}>1960</option>
+                <option value=${1970}>1970</option>
+                <option value=${1980}>1980</option>
+                <option value=${1990}>1990</option>
+                <option value=${2000}>2000</option>
+                <option value=${2010}>2010</option>
               </select>
             </div>
           </div>
@@ -408,11 +463,12 @@ const MovieList = ({
           html`
             <${MovieListItem}
               key=${`${movie.id}-${movie.title}`} 
-              movieData=${{...movie, review: ''}} 
+              movieData=${{...movie, review: reviewsRef.current.find(review => review['movie-id'] === movie.id)['review']}} 
               isItemALink=${isItemALink} 
               isCollapsible=${moviesCanCollapse}
               showMovieYear=${showMovieYear}
               showMovieRating=${showMovieRating}
+              showBodyImage=${showBodyImage}
             ><//>
           `)}
       </ul>
@@ -473,16 +529,41 @@ export const App = ({ onLoad }) => {
           />
         `
         case 7:
-        return html`
-          <${MovieList} 
-            isItemALink=${true} 
-            showMovieYear=${true} 
-            showMovieRating=${true} 
-            useCachedMoviesOnly=${true}
-            withSearch=${true}
-            allowFilterByDecade=${true}
-          />
-        `       
+          return html`
+            <${MovieList} 
+              isItemALink=${true} 
+              showMovieYear=${true} 
+              showMovieRating=${true} 
+              useCachedMoviesOnly=${true}
+              withSearch=${true}
+              allowFilterByDecade=${true}
+            />
+          `
+        case 8:
+          return html`
+            <${MovieList} 
+              isItemALink=${true} 
+              showMovieYear=${true} 
+              showMovieRating=${true} 
+              useCachedMoviesOnly=${true}
+              withSearch=${true}
+              allowFilterByDecade=${true}
+              moviesCanCollapse=${true}
+            />
+          `
+          case 9:
+            return html`
+              <${MovieList} 
+                isItemALink=${true} 
+                showMovieYear=${true} 
+                showMovieRating=${true} 
+                useCachedMoviesOnly=${true}
+                withSearch=${true}
+                allowFilterByDecade=${true}
+                moviesCanCollapse=${true}
+                showBodyImage=${true}
+              />
+            `
     }
   }
 
@@ -491,9 +572,14 @@ export const App = ({ onLoad }) => {
       ${currentStep &&
         html`<h1 className=${titleStyle}>Results for step ${currentStep}</h1>`}
       ${renderResultForStep(currentStep)}
-      <p className=${style}>
-        (this file can be found at ./your-code-here/app.js)
-      </p>
+      ${!currentStep &&
+        html`
+        <img className=${welcomeImage} src=${"/assets/Geoffrey.jpg"} />
+        <h1 className=${titleStyle}>Hi, I'm Giovanni :)</hi>
+        <p className=${style}>
+          Hope I did well in this assesment 😅, I've learned a lot doing this. Please fell free and welcome of give me feedback, I would appreciate it so much 💛🌟. 
+        </p>
+      `}
     </div>
   `;
 };
